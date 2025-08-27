@@ -164,7 +164,7 @@
 1.  사용자의 원본 질문을 `user_prompt` 변수에 할당합니다.
 2.  `ANALYZE_GEMINI_PROMPT`를 호출하여 중간 결과인 `user_intent`를 생성합니다.
 3.  `user_prompt`와 `user_intent`를 `EXTRACT_PARAMS_PROMPT`에 주입하여 완성된 프롬프트를 생성합니다.
-4.  완성된 프롬프트를 Google Gemini API에 전송합니다. (권장 모델: `gemini-1.5-flash-latest`)
+4.  완성된 프롬프트를 Google Gemini API에 전송합니다. (권장 모델: `gemini-2.5-flash-lite-preview-06-17`)
 5.  API로부터 받은 최종 JSON 응답 문자열을 파싱(Parsing)하여 애플리케이션에서 활용합니다.
 
 ## 6\. 작성자 (Author)
