@@ -43,28 +43,6 @@
     | `concept_tags`| Array[String] | 질문에서 파악된 핵심 주제, 관심사, 키워드 배열 |
     | `user_intents`| Array[String] | 사용자의 핵심 의도와 확장될 가능성이 높은 후속 질문 배열 |
 
-  * **전체 프롬프트**:
-
-    ```
-    # [Instruction]
-    지정한 형식의 JSON 객체를 추출하라, 입력된 'user_input'을 분석하여
-
-    ## [Information]
-    user_input = {user_input}
-
-    ### [Output Format]
-    반드시 다음에 제시된 키 순서와 형태로만 이루어진 JSON 객체를 출력해야 합니다.
-    • concept_tags: 질문에서 파악할 주제·관심사·키워드 배열 (단, 책, 도서와 같은 키워드 제외)  
-    • user_intents: 다음의 2가지가 반영된 배열 (5개 이내) 
-    1. 'user_input'의 핵심 의도 
-    2. 사용자 후속 질의로 확장될 가능성이 높은 개념
-
-    #### [Strong Rules]
-    1. 출력은 오직 JSON 문법에 맞는 객체 하나만 있어야 하며, 어떠한 추가 설명, 주석, 마크다운도 포함하지 마세요.
-    2. 키 순서는 위 목록과 동일해야 합니다.
-    3. JSON에 대한 value 값은 '한국어'로 출력되어야 합니다.
-    ```
-
 ### 4.2. 2단계: 파라미터 추출 프롬프트 (`EXTRACT_PARAMS_PROMPT`)
 
   * **역할**: 1단계에서 분석된 의도(`user_intent`)와 원본 질문(`user_prompt`)을 바탕으로, 실제 데이터베이스 검색에 사용될 최종 파라미터를 추출하고 구조화합니다.
@@ -87,77 +65,6 @@
     | `genre` | String | 추출 또는 추론된 장르 |
     | `concept` | String | 질문의 핵심 컨셉을 나타내는 키워드 (쉼표로 구분) |
     | `optimizedQuery` | String | 데이터베이스 검색에 직접 사용할 최적화된 3-4 단어 검색어 |
-
-  * **전체 프롬프트**:
-
-    ```
-    # [Instruction]
-    You are an expert AI that analyzes a user's book search query and generates a structured JSON object for optimal database search. Follow the steps below precisely.
-
-    # [Input Data]
-    - user_prompt: {user_prompt}
-    - user_intent: {user_intent}
-
-    ---
-    # [Step 1: Classify Search Type]
-    First, classify the `user_prompt` into one of the 7 types defined below and find its corresponding number ID.
-
-    1.  **Title**: The user is looking for a specific book title. (e.g., "데미안 찾아줘")
-    2.  **Title + Author**: The user specifies both title and author. (e.g., "헤르만 헤세의 데미안 있어?")
-    3.  **Author**: The user is looking for works by a specific author. (e.g., "헤르만 헤세 작품 목록 보여줘")
-    4.  **Author + Genre**: The user specifies an author and a genre. (e.g., "한강 작가의 소설 작품을 찾아보고 싶어")
-    5.  **Concept + Target Audience**: The user is looking for books for a specific audience. (e.g., "초등학생이 읽을 만한 우주 관련 책")
-    6.  **Concept + Genre**: The user combines a concept with a genre. (e.g., "인공지능을 다루는 SF 소설 추천해줘")
-    7.  **Concept + Synopsis**: The user describes the plot or concept of a book. (e.g., "주인공이 갑자기 고양이로 변하는 소설 알아?")
-
-    ---
-    # [Step 2: Generate JSON Output]
-    Based on the classification from Step 1, fill out the following JSON object.
-    - **Keys MUST be in English** as specified in the format below.
-    - **If the type ID is 1-4 (Simple Search)**: EXTRACT entities directly from the `user_prompt`.
-    - **If the type ID is 5-7 (In-depth Search)**: INFER and SUGGEST entities based on the `user_intent`. If the `user_intent` strongly suggests a famous book (e.g., "안네의 일기"), you MUST fill in the `title` and `author` fields.
-    - If a value cannot be found, leave it as an empty string "".
-
-    # [Unified Output JSON Format]
-    Respond with ONLY the following JSON object. Do not include any other text or explanations.
-    {{
-      "searchType": "",         // String: "Simple Search" (for types 1-4) or "In-depth Search" (for types 5-7).
-      "queryType": 0,           // Integer: The number ID from 1 to 7 determined in Step 1.
-      "title": "",              // Inferred or extracted title of the book.
-      "author": "",             // Inferred or extracted author of the book.
-      "genre": "",              // Inferred or extracted genre.
-      "concept": "",            // Core concept keywords from the user's query.
-      "optimizedQuery": ""      // A 3-4 word keyword query for database search.
-    }}
-
-    # [Example for In-depth Search (Type 7)]
-    - user_prompt: "세계 2차대전에 쓰인 소녀의 일기에관한 책이 뭐지?"
-    - user_intent: "세계 2차 대전을 배경으로 한 소녀의 일기 관련 책 정보 탐색. ‘안네의 일기’일 가능성이 높음."
-    - Expected Output:
-    {{
-      "searchType": "In-depth Search",
-      "queryType": 7,
-      "title": "안네의 일기",
-      "author": "안네 프랑크",
-      "genre": "에세이",
-      "concept": "세계 2차대전, 소녀, 일기",
-      "optimizedQuery": "세계 2차대전 소녀 일기"
-    }}
-
-    # [Example for Simple Search (Type 4)]
-    - user_prompt: "한강 작가의 소설 작품을 찾아보고 싶어"
-    - user_intent: "한강 작가의 소설 장르 도서 목록 검색"
-    - Expected Output:
-    {{
-        "searchType": "Simple Search",
-        "queryType": 4,
-        "title": "",
-        "author": "한강",
-        "genre": "소설",
-        "concept": "한강, 소설",
-        "optimizedQuery": "한강 소설"
-    }}
-    ```
 
 ## 5\. 사용 방법 (How to Use)
 
